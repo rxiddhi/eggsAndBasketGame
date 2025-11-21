@@ -1,7 +1,7 @@
 # Eggs And Basket Game
 A fun, accelerometer-based mobile game built with React Native + Expo.
 You can tilt your phone to move the basket and catch the falling eggs.
-Golden eggs give bonus points — but miss one, and it’s GAME OVER!
+Golden eggs give bonus points, but miss one, and it’s GAME OVER!
 
 ## Features
 - Motion-controlled basket using accelerometer
