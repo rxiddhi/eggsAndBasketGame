@@ -10,19 +10,16 @@ import { Accelerometer } from "expo-sensors";
 import { Audio } from "expo-av";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
-
 const BASKET_WIDTH = 90;
 const BASKET_HEIGHT = 50;
 const EGG_SIZE = 40;
-
-
 const EGG_START_Y = screenHeight - 80;
 
 export default function App() {
-  const [basketX, setBasketX] = useState(
-    (screenWidth - BASKET_WIDTH) / 2
-  );
+  const [basketX, setBasketX] = useState((screenWidth - BASKET_WIDTH) / 2);
+  const [score, setScore] = useState(0);
+  const [speed, setSpeed] = useState(4);
+  const [gameOver, setGameOver] = useState(false);
 
   const [egg, setEgg] = useState({
     x: Math.random() * (screenWidth - EGG_SIZE),
@@ -30,13 +27,8 @@ export default function App() {
     isGolden: false,
   });
 
-  const [score, setScore] = useState(0);
-  const [speed, setSpeed] = useState(4);
-  const [gameOver, setGameOver] = useState(false);
-
   const [catchSound, setCatchSound] = useState(null);
   const [missSound, setMissSound] = useState(null);
-
 
   useEffect(() => {
     let catchSoundObj;
@@ -55,23 +47,16 @@ export default function App() {
         );
         missSoundObj = missResult.sound;
         setMissSound(missResult.sound);
-      } catch (e) {
-        console.warn("Error loading sounds:", e);
-      }
+      } catch (e) {}
     };
 
     loadSounds();
 
     return () => {
-      if (catchSoundObj) {
-        catchSoundObj.unloadAsync();
-      }
-      if (missSoundObj) {
-        missSoundObj.unloadAsync();
-      }
+      catchSoundObj?.unloadAsync();
+      missSoundObj?.unloadAsync();
     };
   }, []);
-
 
   useEffect(() => {
     Accelerometer.setUpdateInterval(20);
@@ -79,12 +64,11 @@ export default function App() {
     const subscription = Accelerometer.addListener(({ x }) => {
       setBasketX((prevX) => {
         const move = prevX - x * 30;
-        const clamped = Math.max(0, Math.min(move, screenWidth - BASKET_WIDTH));
-        return clamped;
+        return Math.max(0, Math.min(move, screenWidth - BASKET_WIDTH));
       });
     });
 
-    return () => subscription && subscription.remove();
+    return () => subscription?.remove();
   }, []);
 
   useEffect(() => {
@@ -97,7 +81,6 @@ export default function App() {
           handleMiss();
           return prev;
         }
-
         return { ...prev, y: newY };
       });
     }, 30);
@@ -105,63 +88,41 @@ export default function App() {
     return () => clearInterval(interval);
   }, [speed, gameOver]);
 
-
   useEffect(() => {
     if (gameOver) return;
 
     const basketTop = BASKET_HEIGHT + 20;
     const eggBottom = egg.y;
-
     const isVerticallyAligned = eggBottom <= basketTop + EGG_SIZE / 2;
 
     const eggCenterX = egg.x + EGG_SIZE / 2;
-    const basketLeft = basketX;
-    const basketRight = basketX + BASKET_WIDTH;
-    const isHorizontallyAligned =
-      eggCenterX >= basketLeft && eggCenterX <= basketRight;
+    const inBasketRange =
+      eggCenterX >= basketX && eggCenterX <= basketX + BASKET_WIDTH;
 
-    if (isVerticallyAligned && isHorizontallyAligned) {
-      handleCatch();
-    }
+    if (isVerticallyAligned && inBasketRange) handleCatch();
   }, [egg.y, egg.x, basketX, gameOver]);
-
 
   const handleCatch = async () => {
     setScore((prev) => prev + (egg.isGolden ? 5 : 1));
-
     setSpeed((prev) => prev + 0.3);
-
     try {
-      if (catchSound) {
-        await catchSound.replayAsync();
-      }
-    } catch (e) {
-      console.warn("Error playing catch sound:", e);
-    }
-
+      await catchSound?.replayAsync();
+    } catch (e) {}
     resetEgg();
   };
 
   const handleMiss = async () => {
     setGameOver(true);
-
     try {
-      if (missSound) {
-        await missSound.replayAsync();
-      }
-    } catch (e) {
-      console.warn("Error playing miss sound:", e);
-    }
+      await missSound?.replayAsync();
+    } catch (e) {}
   };
 
-
   const resetEgg = () => {
-    const isGolden = Math.random() < 0.15;
-
     setEgg({
       x: Math.random() * (screenWidth - EGG_SIZE),
       y: EGG_START_Y,
-      isGolden,
+      isGolden: Math.random() < 0.15,
     });
   };
 
@@ -176,6 +137,7 @@ export default function App() {
     <View style={styles.container}>
       <Text style={styles.scoreText}>Score: {score}</Text>
       <Text style={styles.infoText}>Tilt your phone to move the basket</Text>
+
       {!gameOver && (
         <View
           style={[
@@ -193,14 +155,7 @@ export default function App() {
         />
       )}
 
-      <View
-        style={[
-          styles.basket,
-          {
-            left: basketX,
-          },
-        ]}
-      />
+      <View style={[styles.basket, { left: basketX }]} />
 
       {gameOver && (
         <View style={styles.overlay}>
@@ -214,7 +169,6 @@ export default function App() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
